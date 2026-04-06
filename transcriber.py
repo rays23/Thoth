@@ -8,34 +8,43 @@ import config
 logger = logging.getLogger(__name__)
 
 _model = None
+_transcribe_fn = None
 
 
 def load_model():
-    global _model
-    if _model is not None:
-        return _model
+    global _model, _transcribe_fn
 
-    import whisper
+    if _transcribe_fn is not None:
+        return
 
-    logger.info(f"Loading Whisper model '{config.WHISPER_MODEL}' on '{config.WHISPER_DEVICE}'...")
-    _model = whisper.load_model(config.WHISPER_MODEL, device=config.WHISPER_DEVICE)
-    logger.info("Model loaded.")
-    return _model
+    if config.WHISPER_BACKEND == "mlx":
+        import mlx_whisper
+
+        logger.info(f"Using MLX backend with model '{config.WHISPER_MODEL}' (Apple Silicon GPU)")
+        _transcribe_fn = lambda path, **kw: mlx_whisper.transcribe(
+            str(path),
+            path_or_hf_repo=config.WHISPER_MODEL,
+            **kw,
+        )
+    else:
+        import whisper
+
+        logger.info(f"Loading OpenAI Whisper model '{config.WHISPER_MODEL}'...")
+        _model = whisper.load_model(config.WHISPER_MODEL)
+        _transcribe_fn = lambda path, **kw: _model.transcribe(str(path), **kw)
+
+    logger.info("Model ready.")
 
 
 def transcribe_audio(audio_path, video_meta):
-    model = load_model()
+    load_model()
 
-    decode_options = {}
+    decode_options = {"verbose": False}
     if config.WHISPER_LANGUAGE:
         decode_options["language"] = config.WHISPER_LANGUAGE
 
     logger.info(f"  Transcribing: {audio_path.name}")
-    result = model.transcribe(
-        str(audio_path),
-        **decode_options,
-        verbose=False,
-    )
+    result = _transcribe_fn(audio_path, **decode_options)
 
     transcript_text = result.get("text", "").strip()
     detected_language = result.get("language", "unknown")

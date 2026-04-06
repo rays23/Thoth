@@ -1,6 +1,7 @@
 google-api-python-client==2.111.0
 google-auth==2.25.2
-openai-whisper>=20231117
+mlx-whisper>=0.4.0
 yt-dlp>=2023.12.30
 python-dotenv==1.0.0
 tqdm==4.66.1
+# Optional: openai-whisper (for non-Apple Silicon / CUDA)

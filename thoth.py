@@ -54,7 +54,8 @@ def cmd_transcribe(args):
 
     print(f"\n=== Thoth Transcription Pipeline ===")
     print(f"  Channel:  {channel_name} ({channel_id})")
-    print(f"  Model:    {config.WHISPER_MODEL}")
+    print(f"  Model EN:    {config.WHISPER_MODEL_EN}")
+    print(f"  Model Multi: {config.WHISPER_MODEL_MULTI}")
     print(f"  Limit:    {args.limit or 'all'}")
     print(f"  Dry Run:  {args.dry_run}")
     print()
@@ -126,8 +127,6 @@ def main():
     setup_logging(verbose=args.verbose)
 
     if args.command == "transcribe":
-        if hasattr(args, "model") and args.model:
-            config.WHISPER_MODEL = args.model
         cmd_transcribe(args)
     elif args.command == "channels":
         cmd_channels(args)

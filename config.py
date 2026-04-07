@@ -10,7 +10,8 @@ load_dotenv()
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
 
 # --- Whisper ---
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "mlx-community/whisper-large-v3-mlx")
+WHISPER_MODEL_EN = os.getenv("WHISPER_MODEL_EN", "mlx-community/distil-whisper-large-v3")
+WHISPER_MODEL_MULTI = os.getenv("WHISPER_MODEL_MULTI", "mlx-community/whisper-large-v3-turbo")
 WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "")  # empty = auto-detect
 WHISPER_BACKEND = os.getenv("WHISPER_BACKEND", "mlx")  # "mlx" or "openai"
 
@@ -45,7 +46,8 @@ def validate():
 def summary():
     print("=== Thoth Configuration ===")
     print(f"  YouTube API Key:  {'***' + YOUTUBE_API_KEY[-4:] if len(YOUTUBE_API_KEY) > 4 else '(not set)'}")
-    print(f"  Whisper Model:    {WHISPER_MODEL}")
+    print(f"  Whisper EN:       {WHISPER_MODEL_EN}")
+    print(f"  Whisper Multi:    {WHISPER_MODEL_MULTI}")
     print(f"  Whisper Language: {WHISPER_LANGUAGE or '(auto-detect)'}")
     print(f"  Whisper Backend:  {WHISPER_BACKEND}")
     print(f"  Output Dir:       {OUTPUT_DIR}")

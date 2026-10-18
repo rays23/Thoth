@@ -238,6 +238,9 @@ def whisper_transcribe(audio: Path, duration: int, workdir: Path) -> tuple[list[
         except RuntimeError as error:
             stage = "rate_limited" if " 429" in str(error) else "whisper"
             raise WorkerError(stage, str(error)[:300]) from error
+        except (OSError, json.JSONDecodeError) as error:
+            # URLError, Socket-Timeout und ungültige Antworten sind vorübergehende Anbieterfehler, keine falsche Anfrage
+            raise WorkerError("whisper", f"Netzwerk- oder Antwortfehler: {error}"[:300]) from error
         for seg in whisper_api._segments_from_response(response):
             segments.append({**seg, "start": round(seg["start"] + offset, 2), "end": round(seg["end"] + offset, 2)})
     if not segments:
@@ -345,7 +348,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             with _JOB_LOCK:
-                self._send(200, process(payload))
+                result = process(payload)
         except ValueError as error:
             self._send(400, {"error": str(error)})
         except WorkerError as error:
@@ -355,6 +358,9 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             logger.exception("Unerwarteter Fehler")
             self._send(500, {"error": "interner Fehler", "stage": "unknown"})
+        else:
+            # Antwort erst nach Freigabe der Sperre senden, damit ein langsamer Client keine Jobs aufhält
+            self._send(200, result)
 
 
 def main() -> None:

@@ -170,6 +170,28 @@ def test_run_maps_timeouts_to_worker_error(monkeypatch):
     assert error.value.stage == "timeout"
 
 
+def test_whisper_network_errors_become_worker_errors(tmp_path, monkeypatch):
+    audio = tmp_path / "a.mp3"
+    audio.write_bytes(b"x")
+    monkeypatch.setattr(server.whisper_api, "load_api_key", lambda: ("groq", "dummy"))
+
+    def fail(*args, **kwargs):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(server.whisper_api, "_post_whisper", fail)
+    with pytest.raises(server.WorkerError) as error:
+        server.whisper_transcribe(audio, 60, tmp_path)
+    assert error.value.stage == "whisper"
+
+    def rate_limited(*args, **kwargs):
+        raise RuntimeError("Whisper API error 429: slow down")
+
+    monkeypatch.setattr(server.whisper_api, "_post_whisper", rate_limited)
+    with pytest.raises(server.WorkerError) as limited:
+        server.whisper_transcribe(audio, 60, tmp_path)
+    assert limited.value.stage == "rate_limited"
+
+
 def test_split_audio_keeps_short_files_whole(tmp_path):
     audio = tmp_path / "a.mp3"
     assert server.split_audio(audio, 600, tmp_path) == [(audio, 0.0)]
